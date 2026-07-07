@@ -1,0 +1,113 @@
+{
+  "info": {
+    "name": "TechLar - Mock Logistica (US 04)",
+    "description": "Colecao para testar o mock de logistica da Sprint 3. Base configuravel na variavel {{baseUrl}} (default http://localhost:3000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "trackingCode",
+      "value": "BR123456789",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Ajuda (GET /)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+      }
+    },
+    {
+      "name": "1. Sucesso - GET /tracking/:code",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('tem campos do contrato', () => {",
+              "  pm.expect(b).to.have.property('status');",
+              "  pm.expect(b).to.have.property('updatedAt');",
+              "  pm.expect(b).to.have.property('carrier');",
+              "  pm.expect(b).to.have.property('eta');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/tracking/{{trackingCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["tracking", "{{trackingCode}}"]
+        }
+      }
+    },
+    {
+      "name": "2. Derrubar API (POST /admin/down)",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{baseUrl}}/admin/down", "host": ["{{baseUrl}}"], "path": ["admin", "down"] }
+      }
+    },
+    {
+      "name": "3. Falha 503 - GET /tracking/:code (com API derrubada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 503', () => pm.response.to.have.status(503));",
+              "pm.test('mensagem de erro', () => pm.expect(pm.response.json()).to.have.property('error'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/tracking/{{trackingCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["tracking", "{{trackingCode}}"]
+        }
+      }
+    },
+    {
+      "name": "4. Restabelecer API (POST /admin/up)",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{baseUrl}}/admin/up", "host": ["{{baseUrl}}"], "path": ["admin", "up"] }
+      }
+    },
+    {
+      "name": "5. Simular lentidao 12s (POST /admin/delay?ms=12000)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/admin/delay?ms=12000",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "delay"],
+          "query": [{ "key": "ms", "value": "12000" }]
+        }
+      }
+    },
+    {
+      "name": "6. Estado atual (GET /admin/status)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/admin/status", "host": ["{{baseUrl}}"], "path": ["admin", "status"] }
+      }
+    }
+  ]
+}

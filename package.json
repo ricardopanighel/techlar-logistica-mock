@@ -1,0 +1,13 @@
+{
+  "name": "techlar-logistica-mock",
+  "version": "1.0.0",
+  "description": "Mock da API de logistica para a Sprint 3 (US 04) do case TechLar. Node puro, sem dependencias.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
