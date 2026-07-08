@@ -28,6 +28,7 @@ const state = {
   delayMs: 0,      // atraso artificial antes de responder /tracking
 };
 
+const CARRIERS = ['Correios', 'Jadlog', 'Loggi', 'Total Express', 'Azul Cargo'];
 const STATUSES = ['Novo Pedido', 'Postado', 'Em trânsito', 'Saiu para entrega', 'Entregue', 'Aguardando retirada'];
 
 // Gera dados deterministicos a partir do codigo de rastreio,
@@ -42,6 +43,7 @@ function hash(str) {
 
 function buildTracking(code) {
   const h = hash(code || 'DEFAULT');
+  const carrier = CARRIERS[h % CARRIERS.length];
   const status = STATUSES[(h >> 3) % STATUSES.length];
 
   const now = new Date();
@@ -52,6 +54,7 @@ function buildTracking(code) {
     trackingCode: code,
     status,
     updatedAt: updatedAt.toISOString(),
+    carrier,
     eta: eta.toISOString().slice(0, 10), // YYYY-MM-DD
   };
 }
