@@ -29,7 +29,9 @@ const state = {
 };
 
 const CARRIERS = ['Correios', 'Jadlog', 'Loggi', 'Total Express', 'Azul Cargo'];
-const STATUSES = ['Novo Pedido', 'Postado', 'Em trânsito', 'Saiu para entrega', 'Entregue', 'Aguardando retirada'];
+// Vocabulario de status = as 4 etapas da barra do Workspace (LWC).
+// Manter alinhado com o front: qualquer valor fora desta lista quebra a barra.
+const STATUSES = ['Aguardando', 'Confirmado', 'Em Transporte', 'Entregue'];
 
 // Gera dados deterministicos a partir do codigo de rastreio,
 // para que o mesmo codigo sempre retorne o mesmo status na demo.
