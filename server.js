@@ -44,7 +44,7 @@ function hash(str) {
 function buildTracking(code) {
   const h = hash(code || 'DEFAULT');
   const carrier = CARRIERS[h % CARRIERS.length];
-  const status = STATUSES[(h >> 3) % STATUSES.length];
+  const status = STATUSES[(h >>> 3) % STATUSES.length];
 
   const now = new Date();
   const updatedAt = new Date(now.getTime() - ((h % 72) * 3600 * 1000)); // ate 3 dias atras
