@@ -38,7 +38,7 @@ Sucesso (HTTP 200):
 Indisponível (HTTP 503), quando a API está "derrubada":
 
 ```json
-{ "error": "Service Unavailable" }
+{ "error": "Serviço temporariamente indisponível." }
 ```
 
 > Os dados são **determinísticos por código**: o mesmo `trackingCode` sempre retorna o mesmo
@@ -59,6 +59,85 @@ Roteiro dos 3 cenários obrigatórios:
 2. **Falha** — `POST /admin/down` → o Salesforce mostra a mensagem amigável e grava o log.
 3. **Retentativa** — `POST /admin/up` → clicar "Atualizar Status" volta a trazer 200.
 4. **Timeout (bônus)** — `POST /admin/delay?ms=12000` → o callout de 10s estoura e cai no fallback.
+
+## Mock de ERP (Estoque) — projeto Agentforce
+
+O **mesmo servidor** também simula um ERP de estoque terceirizado. Os SKUs **refletem os produtos
+reais do site** (fonte: `techlar-ecommerce` → `server/src/db/products.js`, que espelha o Price Book
+da org), então a demo do Agentforce fica coerente com o catálogo. O **estoque é mutável em memória**:
+uma compra baixa o saldo, e o mock é a **fonte da verdade** do inventário para o site e para a org.
+
+### Contrato
+
+`GET /estoque/:sku`
+
+Sucesso (HTTP 200):
+
+```json
+{
+  "sku": "GSGH2J23213",
+  "nome": "iPhone 17",
+  "precoUnitario": 8608.0,
+  "moeda": "BRL",
+  "quantidadeDisponivel": 5,
+  "disponivel": true,
+  "updatedAt": "2026-09-10T12:00:00.000Z"
+}
+```
+
+Indisponível (HTTP 503), quando o ERP está "derrubado":
+
+```json
+{ "error": "ERP temporariamente indisponível." }
+```
+
+`POST /estoque/baixa` — baixa o estoque numa compra. Corpo:
+
+```json
+{ "itens": [{ "sku": "GSGH2J23213", "qtd": 2 }] }
+```
+
+- **200** `{ ok: true, itens: [{ sku, quantidadeDisponivel }] }` quando há saldo.
+- **409** `{ error, faltantes: [{ sku, solicitado, disponivel }] }` se faltar — e **nada** é baixado
+  (operação atômica: ou baixa todos os itens, ou nenhum).
+
+`POST /estoque/entrada` — repõe/estorna estoque (mesmo formato do body). Útil para restock manual ou
+para compensar uma baixa durante a demo.
+
+### Estoque inicial (seed da demo)
+
+| SKU | Produto | preço (BRL) | estoque |
+| --- | --- | --- | --- |
+| `GSGH2J23213` | iPhone 17 | 8608.00 | 5 |
+| `GSGH2J232111` | iPhone 17 Pro Max | 18902.00 | 3 |
+| `MacBookM4Air` | MacBook Air M4 | 10000.00 | 4 |
+| `GSGH2J232xxsssssss` | MacBook Air M5 | 18902.00 | 2 |
+| `IMP-3D-PREMIUM` | Impressora 3D Premium | 5500.00 | 6 |
+| `IMP-3D-PLUS` | Impressora 3D Plus Premium | 7865.00 | 4 |
+| `CABO-USB` | Cabo USB | 20.00 | 50 |
+
+### Controle da demo do ERP (não faz parte do contrato)
+
+| Ação | Comando |
+| --- | --- |
+| Ver estado + estoque atual | `curl http://localhost:3000/admin/erp/status` |
+| Derrubar o ERP (passa a dar 503) | `curl -X POST http://localhost:3000/admin/erp/down` |
+| Restabelecer o ERP | `curl -X POST http://localhost:3000/admin/erp/up` |
+| Simular lentidão (testa timeout) | `curl -X POST "http://localhost:3000/admin/erp/delay?ms=12000"` |
+| Resetar o estoque para o seed | `curl -X POST http://localhost:3000/admin/erp/reset` |
+
+Roteiro de demonstração ao vivo:
+
+1. **Consulta** — `GET /estoque/GSGH2J23213` → 200 com `quantidadeDisponivel`.
+2. **Compra baixa o estoque** — uma compra (site/org) chama `POST /estoque/baixa` → o saldo cai.
+3. **Sem estoque** — repita a baixa até zerar → `409` e a venda é bloqueada com mensagem amigável.
+4. **Repetir** — `POST /admin/erp/reset` volta ao seed para rodar a demo de novo.
+
+> O ERP tem estado **independente** da logística: `POST /admin/erp/down` não afeta `/tracking`, e
+> `POST /admin/down` não afeta `/estoque`.
+
+Na org, o consumo segue o mesmo padrão da logística: um Named Credential (ex.: `ErpAPI`) apontando
+para a URL pública do túnel + uma classe Service em Apex montando `callout:ErpAPI/estoque/<sku>`.
 
 ## Expor para o Salesforce (importante)
 

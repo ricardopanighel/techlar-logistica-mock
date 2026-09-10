@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "TechLar - Mock ERP (Estoque)",
+    "description": "Colecao para testar o mock de ERP/Estoque (projeto Agentforce). Base configuravel na variavel {{baseUrl}} (default http://localhost:3000). SKUs espelham o catalogo real do site.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "sku",
+      "value": "GSGH2J23213",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Ajuda (GET /)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+      }
+    },
+    {
+      "name": "1. Reset do estoque (POST /admin/erp/reset)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('ok true', () => pm.expect(pm.response.json()).to.have.property('ok', true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/admin/erp/reset",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "erp", "reset"]
+        }
+      }
+    },
+    {
+      "name": "2. Consulta estoque - GET /estoque/:sku",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('tem campos do contrato', () => {",
+              "  pm.expect(b).to.have.property('sku');",
+              "  pm.expect(b).to.have.property('precoUnitario');",
+              "  pm.expect(b).to.have.property('quantidadeDisponivel');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/estoque/{{sku}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["estoque", "{{sku}}"]
+        }
+      }
+    },
+    {
+      "name": "3. Baixa de estoque (POST /estoque/baixa)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('baixa ok', () => pm.expect(b).to.have.property('ok', true));",
+              "pm.test('retorna itens', () => pm.expect(b.itens[0]).to.have.property('quantidadeDisponivel'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itens\": [\n    { \"sku\": \"{{sku}}\", \"qtd\": 1 }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/estoque/baixa",
+          "host": ["{{baseUrl}}"],
+          "path": ["estoque", "baixa"]
+        }
+      }
+    },
+    {
+      "name": "4. Baixa excessiva - 409 (POST /estoque/baixa)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 409', () => pm.response.to.have.status(409));",
+              "pm.test('tem faltantes', () => pm.expect(pm.response.json()).to.have.property('faltantes'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itens\": [\n    { \"sku\": \"{{sku}}\", \"qtd\": 99999 }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/estoque/baixa",
+          "host": ["{{baseUrl}}"],
+          "path": ["estoque", "baixa"]
+        }
+      }
+    },
+    {
+      "name": "5. Entrada/estorno (POST /estoque/entrada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('ok true', () => pm.expect(pm.response.json()).to.have.property('ok', true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itens\": [\n    { \"sku\": \"{{sku}}\", \"qtd\": 1 }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/estoque/entrada",
+          "host": ["{{baseUrl}}"],
+          "path": ["estoque", "entrada"]
+        }
+      }
+    },
+    {
+      "name": "6. Derrubar ERP (POST /admin/erp/down)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/admin/erp/down",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "erp", "down"]
+        }
+      }
+    },
+    {
+      "name": "7. Falha 503 - GET /estoque/:sku (ERP derrubado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 503', () => pm.response.to.have.status(503));",
+              "pm.test('mensagem de erro', () => pm.expect(pm.response.json()).to.have.property('error'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/estoque/{{sku}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["estoque", "{{sku}}"]
+        }
+      }
+    },
+    {
+      "name": "8. Restabelecer ERP (POST /admin/erp/up)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/admin/erp/up",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "erp", "up"]
+        }
+      }
+    },
+    {
+      "name": "9. Estado + estoque (GET /admin/erp/status)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('tem snapshot de estoque', () => pm.expect(pm.response.json()).to.have.property('estoque'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/admin/erp/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["admin", "erp", "status"]
+        }
+      }
+    }
+  ]
+}
